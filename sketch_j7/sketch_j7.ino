@@ -1,44 +1,71 @@
 #include <Wire.h>
+#include "SparkFun_ENS160.h"
 #include <Adafruit_AHTX0.h>
-#include <ScioSense_ENS160.h>
 
-Adafruit_AHTX0 aht;
-// ScioSense_ENS160 ens160(ENS160_I2CADDR_1); // Use the correct I2C address
-ScioSense_ENS160 ens160(ENS160_I2CADDR_0);
-
+SparkFun_ENS160 myENS;
+Adafruit_AHTX0 myAHT;
 
 void setup() {
-  Serial.begin(9600);
-  while (!Serial) {
-    // Wait for serial connection
+  Wire.begin();
+  Serial.begin(115200);
+
+  // Initialize ENS160 sensor
+  if (!myENS.begin()) {
+    Serial.println("Error initializing ENS160 sensor.");
+    while (1);
   }
 
-  aht.begin();
-  ens160.begin();
+  // Initialize AHT21 sensor
+  if (!myAHT.begin()) {
+    Serial.println("Error initializing AHT sensor.");
+    while (1);
+  }
 
-  Serial.println("ENS160 + AHT21 Sensor Readings:");
+  // Set ENS160 operating mode
+  if (myENS.setOperatingMode(SFE_ENS160_RESET))
+    Serial.println("ENS160 ready.");
+
+  delay(100);
+  myENS.setOperatingMode(SFE_ENS160_STANDARD);
 }
 
 void loop() {
+  // Read humidity and temperature from AHT21 sensor
   sensors_event_t humidity, temp;
-  aht.getEvent(&humidity, &temp); // Populate temp and humidity objects with fresh data
+  myAHT.getEvent(&humidity, &temp); // Populate humidity and temp with the AHT sensor's readings
 
-  // Read ENS160 data
-  float tvoc = ens160.geteCO2(); // Use geteCO2() instead of getCO2eq()
-  float co2eq = ens160.geteCO2(); // Correct method for CO2eq
-  float aqi = ens160.getAQI();
+  Serial.print("Temperature (°C): ");
+  Serial.println(temp.temperature);
 
-  // Correctly read temperature from AHT21
-  float tempC = temp.temperature; // Temperature in Celsius
+  Serial.print("Relative Humidity (%RH): ");
+  Serial.println(humidity.relative_humidity);
 
-  // Print sensor data
+  // Check if ENS160 data is ready
+  if (myENS.checkDataStatus()) {
+    // Read TVOC from ENS160 sensor and convert to mg/m3
+    float tvocPPB = myENS.getTVOC();
+    float tvocMgM3 = tvocPPB * 1.96e-3;
 
-  Serial.print("Temperature (°C): "); Serial.println(tempC);
-  Serial.print("Humidity (%): "); Serial.println(humidity.relative_humidity);
-  Serial.print("TVOC (ppb): "); Serial.println(tvoc);
-  Serial.print("CO2eq (ppm): "); Serial.println(co2eq);
-  Serial.print("Air Quality Index (AQI): "); Serial.println(aqi);
-  Serial.print(" ");
+    Serial.print("Total Volatile Organic Compounds (TVOC) (mg/m³): ");
+    Serial.println(tvocMgM3, 5); // Display TVOC with 5 decimal places
 
-  delay(2000); // Adjust delay here
+    // Read CO2 concentration from ENS160 sensor
+    Serial.print("CO2 concentration (ppm): ");
+    Serial.println(myENS.getECO2());
+
+    // Read Air Quality Index from ENS160 sensor
+    Serial.print("Air Quality Index: ");
+    Serial.println(myENS.getAQI());
+  } else {
+    Serial.println("Error: ENS160 data not ready.");
+    // Optional: Reset the sensor if necessary
+    myENS.setOperatingMode(SFE_ENS160_RESET);
+    delay(100);
+    myENS.setOperatingMode(SFE_ENS160_STANDARD);
+  }
+
+  // Print a blank line to separate each set of readings
+  Serial.println();
+
+  delay(3000); // Wait for a short interval before reading data again
 }
