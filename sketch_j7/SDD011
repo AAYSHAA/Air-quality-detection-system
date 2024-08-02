@@ -1,0 +1,50 @@
+#include "SDS011.h"
+
+// Variables to store PM2.5 and PM10 values
+float p10, p25;
+int error;
+
+// Create an instance of the SDS011 sensor
+SDS011 my_sds;
+
+void setup() {
+  // Initialize serial communication at 9600 baud rate
+  Serial.begin(9600);
+  // Give the serial port some time to initialize
+  delay(2000);  // Increased delay for serial port initialization
+  
+  // Initialize the SDS011 sensor on pins 2 (RX) and 3 (TX)
+  my_sds.begin(2, 3);
+  // Allow some time for the sensor to initialize
+  delay(5000);  // Increased delay for sensor initialization
+  
+  // Debugging: print initialization message
+  Serial.println("SDS011 sensor initialized");
+}
+
+void loop() {
+  // Print the elapsed time since the program started
+  unsigned long elapsed_time = millis();
+  Serial.print("Elapsed Time (ms): ");
+  Serial.println(elapsed_time);
+  
+  // Read the PM2.5 and PM10 values from the sensor
+  error = my_sds.read(&p25, &p10);
+  
+  // Check if the reading was successful
+  if (!error) {
+    // Print the PM2.5 and PM10 values
+    Serial.print("P2.5 (µg/m³): ");
+    Serial.println(p25);
+    
+    Serial.print("P10 (µg/m³): ");
+    Serial.println(p10);
+  } else {
+    // Print an error message if reading failed
+    Serial.print("Error reading from SDS011 sensor, error code: ");
+    Serial.println(error);
+  }
+  
+  // Wait for 1 second before the next reading
+  delay(1000);
+}
