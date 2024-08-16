@@ -1,0 +1,44 @@
+const int MQ7_AO_PIN = A0; // Analog output pin
+
+void setup() {
+  Serial.begin(9600); // Initialize serial communication
+}
+
+void loop() {
+  int sensorValue = analogRead(MQ7_AO_PIN); // Read analog value from sensor
+  
+  // Error handling: Check if the analog value is within the expected range (0 to 1023)
+  if (sensorValue < 0 || sensorValue > 1023) {
+    Serial.println("Error: Sensor value out of range!");
+    delay(1000); // Wait for a second and then retry
+    return; // Exit the loop to avoid further processing of invalid data
+  }
+  
+  float voltage = (sensorValue / 1023.0) * 5.0; // Convert to voltage (0-5V)
+  
+  // Error handling: Check if voltage is within expected operational range (0 to 5V)
+  if (voltage < 0.0 || voltage > 5.0) {
+    Serial.println("Error: Voltage out of range!");
+    delay(1000); // Wait for a second and then retry
+    return; // Exit the loop to avoid further processing of invalid data
+  }
+  
+  // Calculate CO concentration (adjust sensitivity based on your sensor)
+  float ppmCO = (voltage - 0.2) / 0.004;
+  
+  // Error handling: Ensure ppmCO value is reasonable (e.g., not negative)
+  if (ppmCO < 0) {
+    Serial.println("Error: Calculated CO concentration is negative!");
+    ppmCO = 0; // Set to 0 if the calculation gives a negative value
+  }
+  
+  // Display results
+  Serial.print("Analog Value: ");
+  Serial.println(sensorValue);
+  Serial.print("Voltage (V): ");
+  Serial.println(voltage, 2); // Display voltage with 2 decimal places
+  Serial.print("CO Concentration (ppm): ");
+  Serial.println(ppmCO, 2); // Display CO concentration with 2 decimal places
+  
+  delay(1000); // Wait for a second
+}
